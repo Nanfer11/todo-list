@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo List</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      min-height: 100vh;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 32px;
+      color: #1a1a2e;
+    }
+
+    .conteneur {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* Formulaire */
+    .formulaire {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 32px;
+    }
+
+    .formulaire h2 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    .champ {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus { border-color: #4f46e5; }
+
+    select {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button.btn-ajouter {
+      width: 100%;
+      padding: 11px;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button.btn-ajouter:hover { background: #4338ca; }
+
+    /* Message d'erreur */
+    .erreur {
+      color: #dc2626;
+      font-size: 0.88rem;
+      margin-top: 8px;
+      display: none;
+    }
+
+    /* Liste des tâches */
+    .liste-titre {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .vide {
+      text-align: center;
+      color: #888;
+      padding: 32px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .tache {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-left: 4px solid #ccc;
+    }
+
+    .tache.haute  { border-left-color: #ef4444; }
+    .tache.moyenne { border-left-color: #f59e0b; }
+    .tache.basse  { border-left-color: #22c55e; }
+
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .haute  .badge { background: #fee2e2; color: #b91c1c; }
+    .moyenne .badge { background: #fef3c7; color: #b45309; }
+    .basse  .badge { background: #dcfce7; color: #15803d; }
+
+    .tache-info { flex: 1; }
+
+    .tache-description {
+      font-size: 0.97rem;
+      font-weight: 500;
+    }
+
+    .tache-date {
+      font-size: 0.78rem;
+      color: #999;
+      margin-top: 3px;
+    }
+
+    button.btn-supprimer {
+      background: none;
+      border: 1px solid #f3a9a9;
+      color: #dc2626;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    button.btn-supprimer:hover { background: #fee2e2; }
+  </style>
+</head>
+<body>
+  <div class="conteneur">
+    <h1>Todo List</h1>
+
+    <div class="formulaire">
+      <h2>Ajouter une tâche</h2>
+      <div class="champ">
+        <input type="text" id="description" placeholder="Description de la tâche…">
+        <select id="priorite">
+          <option value="moyenne">Moyenne</option>
+          <option value="haute">Haute</option>
+          <option value="basse">Basse</option>
+        </select>
+      </div>
+      <button class="btn-ajouter" onclick="ajouterTache()">Ajouter</button>
+      <p class="erreur" id="erreur"></p>
+    </div>
+
+    <p class="liste-titre">Mes tâches</p>
+    <div id="liste-taches"></div>
+  </div>
+
+  <script>
+    async function chargerTaches() {
+      const reponse = await fetch("/api/taches");
+      const taches = await reponse.json();
+      afficherTaches(taches);
+    }
+
+    function afficherTaches(taches) {
+      const conteneur = document.getElementById("liste-taches");
+      if (taches.length === 0) {
+        conteneur.innerHTML = '<div class="vide">Aucune tâche pour le moment.</div>';
+        return;
+      }
+      conteneur.innerHTML = taches.map((tache, index) => `
+        <div class="tache ${tache.priorite}">
+          <span class="badge">${tache.priorite}</span>
+          <div class="tache-info">
+            <div class="tache-description">${echapper(tache.description)}</div>
+            <div class="tache-date">${tache.date_creation}</div>
+          </div>
+          <button class="btn-supprimer" onclick="supprimerTache(${index + 1})">Supprimer</button>
+        </div>
+      `).join("");
+    }
+
+    async function ajouterTache() {
+      const description = document.getElementById("description").value.trim();
+      const priorite = document.getElementById("priorite").value;
+      const erreurEl = document.getElementById("erreur");
+
+      if (!description) {
+        erreurEl.textContent = "La description ne peut pas être vide.";
+        erreurEl.style.display = "block";
+        return;
+      }
+      erreurEl.style.display = "none";
+
+      await fetch("/api/taches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description, priorite })
+      });
+
+      document.getElementById("description").value = "";
+      chargerTaches();
+    }
+
+    async function supprimerTache(numero) {
+      await fetch(`/api/taches/${numero}`, { method: "DELETE" });
+      chargerTaches();
+    }
+
+    function echapper(texte) {
+      return texte.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Ajouter avec la touche Entrée
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("description").addEventListener("keydown", e => {
+        if (e.key === "Enter") ajouterTache();
+      });
+      chargerTaches();
+    });
+  </script>
+</body>
+</html>
