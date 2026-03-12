@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-FICHIER_TACHES = Path(__file__).parent / "taches.json"
+FICHIER_TACHES = Path(__file__).parent.parent / "data" / "taches.json"
 PRIORITES_VALIDES = ("haute", "moyenne", "basse")
 AFFICHAGE_PRIORITE = {"haute": "[HAUTE]", "moyenne": "[MOY.]", "basse": "[BASSE]"}
 
